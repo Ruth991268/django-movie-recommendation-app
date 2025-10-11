@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Movie Recommendations</title>
+<style>
+body { font-family: Arial, sans-serif; background: #111; color: #fff; padding: 20px;}
+h1 { text-align: center; margin-bottom: 20px;}
+form { display: flex; justify-content: center; margin-bottom: 20px; }
+input[type=text] { padding: 8px; width: 300px; border-radius: 5px; border: none; }
+button { padding: 8px 12px; margin-left: 10px; border: none; border-radius: 5px; background: #f39c12; color: #fff; cursor: pointer; }
+.movies { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+.movie-card { width: 180px; background: #222; padding: 10px; border-radius: 8px; text-align: center; transition: transform 0.2s;}
+.movie-card:hover { transform: scale(1.05);}
+.movie-card img { width: 100%; border-radius: 5px; margin-bottom: 5px; }
+.movie-card h3 { font-size: 16px; margin: 5px 0; }
+.movie-card p { font-size: 14px; color: #ccc; }
+.load-more { display: block; margin: 20px auto; padding: 10px 20px; background: #f39c12; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+.genre-tabs { text-align:center; margin-bottom:20px; }
+.genre-tabs a { display:inline-block; margin:5px; padding:8px 12px; background:#f39c12; color:#fff; border-radius:5px; text-decoration:none; }
+.genre-tabs a.active { background:#e67e22; }
+</style>
+</head>
+<body>
+<h1>Movie Recommendations</h1>
+
+<form method="get">
+    <input type="text" name="q" placeholder="Search movies..." value="{{ request.GET.q }}">
+    <button type="submit">Search</button>
+    <button type="submit" name="top_rated" value="1">Top Rated</button>
+</form>
+
+<div class="genre-tabs">
+    {% for genre in genres %}
+        <a href="?genre={{ genre }}" class="{% if current_genre == genre %}active{% endif %}">{{ genre }}</a>
+    {% endfor %}
+</div>
+
+<div class="movies">
+    {% for movie in movies %}
+    <div class="movie-card">
+        <a href="{% url 'movies-detail-html' movie.imdbID %}">
+            <img src="{{ movie.Poster }}" alt="{{ movie.Title }}">
+            <h3>{{ movie.Title }}</h3>
+        </a>
+        <p>{{ movie.Year }}</p>
+    </div>
+    {% empty %}
+    <p>No movies found.</p>
+    {% endfor %}
+</div>
+
+<form method="get">
+    {% if current_genre %}
+        <input type="hidden" name="genre" value="{{ current_genre }}">
+    {% endif %}
+    {% if request.GET.q %}
+        <input type="hidden" name="q" value="{{ request.GET.q }}">
+    {% endif %}
+    {% if request.GET.top_rated %}
+        <input type="hidden" name="top_rated" value="1">
+    {% endif %}
+    <input type="hidden" name="page" value="{{ current_page|add:1 }}">
+    <button class="load-more" type="submit">Load More Movies</button>
+</form>
+
+</body>
+</html>

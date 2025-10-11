@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ movie.Title }}</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; background: #111; color: #fff;}
+a { color: #f39c12; text-decoration: none; }
+.container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+img { max-width: 300px; border-radius: 8px; }
+.details { max-width: 600px; }
+.details h1 { margin-top: 0; }
+.details p { margin: 5px 0; }
+</style>
+</head>
+<body>
+<a href="{% url 'movies-html' %}">&larr; Back to recommendations</a>
+<div class="container">
+    <img src="{{ movie.Poster }}" alt="{{ movie.Title }}">
+    <div class="details">
+        <h1>{{ movie.Title }} ({{ movie.Year }})</h1>
+        <p><strong>Genre:</strong> {{ movie.Genre }}</p>
+        <p><strong>Director:</strong> {{ movie.Director }}</p>
+        <p><strong>Actors:</strong> {{ movie.Actors }}</p>
+        <p><strong>Plot:</strong> {{ movie.Plot }}</p>
+        <p><strong>IMDB Rating:</strong> {{ movie.imdbRating }}</p>
+    </div>
+</div>
+</body>
+</html>

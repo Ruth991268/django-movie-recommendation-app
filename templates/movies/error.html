@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Error</title>
+    <style>
+        body { font-family: Arial; background: #111; color: #fff; text-align: center; padding: 100px; }
+        .error-box { background: #222; padding: 30px; border-radius: 10px; display: inline-block; }
+    </style>
+</head>
+<body>
+<div class="error-box">
+    <h1>Error</h1>
+    <p>{{ message }}</p>
+    <a href="{% url 'movies-html' %}" style="color: #ff6600;">Back to List</a>
+</div>
+</body>
+</html>
