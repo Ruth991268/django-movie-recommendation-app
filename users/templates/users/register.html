@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RJ Movie | Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            height: 100%;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #111, #000);
+        }
+
+        .wrapper {
+            display: flex;
+            width: 90%;
+            max-width: 1000px;
+            height: 600px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .left-panel, .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .left-panel {
+            background: linear-gradient(to bottom right, #FFD700, #FFDA44);
+            color: #000;
+            text-align: center;
+        }
+
+        .left-panel h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .left-panel p {
+            font-size: 18px;
+            font-weight: 500;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .right-panel {
+            background: #111;
+            color: #FFD700;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            text-align: center;
+        }
+
+        form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        label {
+            font-size: 12px; /* extremely small */
+            color: #ccc;
+            margin-bottom: 4px;
+        }
+
+        input {
+            padding: 16px 14px; /* bigger input height */
+            border-radius: 8px;
+            border: 1px solid #FFD700;
+            background: #222;
+            color: #FFD700;
+            font-size: 18px; /* bigger font */
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: #fff;
+        }
+
+        button {
+            background: #FFD700;
+            color: #000;
+            font-weight: 600;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #fff200;
+            box-shadow: 0 0 10px #FFD700;
+        }
+
+        a {
+            color: #FFD700;
+            text-decoration: none;
+            font-size: 12px;
+            margin-top: 12px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .wrapper {
+                flex-direction: column;
+                height: auto;
+            }
+            .left-panel, .right-panel {
+                flex: unset;
+                width: 100%;
+                padding: 30px;
+            }
+            .left-panel h1 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="left-panel">
+            <h1>Welcome to RJ Movies</h1>
+            <p>Discover and enjoy your favorite films anytime, anywhere.</p>
+        </div>
+        <div class="right-panel">
+            <div class="logo">RJ<span>Movie</span></div>
+            <form method="POST">
+                {% csrf_token %}
+                <!-- Minimal fields -->
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Username" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Email" required>
+
+                <label for="password1">Password</label>
+                <input type="password" id="password1" name="password1" placeholder="Password" required>
+
+                <label for="password2">Confirm Password</label>
+                <input type="password" id="password2" name="password2" placeholder="Confirm Password" required>
+
+                <button type="submit">Sign Up</button>
+            </form>
+            <a href="{% url 'login' %}">Already have an account? Login</a>
+        </div>
+    </div>
+</body>
+</html>

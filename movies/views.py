@@ -3,6 +3,8 @@ import random
 import requests
 from django.shortcuts import render
 from dotenv import load_dotenv
+from django.db.models import Avg, Count
+from reviews.models import Review
 
 load_dotenv()
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
@@ -12,6 +14,18 @@ GENRES = ["Romance", "Comedy", "Action", "Horror", "Animation", "Sci-Fi"]
 
 # Number of movies per genre recommendation
 MOVIES_PER_GENRE = 12
+
+def fetch_from_omdb(params):
+    """Helper function to fetch data from OMDB API with error handling."""
+    base_url = "http://www.omdbapi.com/"
+    params['apikey'] = OMDB_API_KEY
+    try:
+        response = requests.get(base_url, params=params, timeout=10)
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+        return response.json()
+    except (requests.exceptions.RequestException, requests.exceptions.ConnectionError):
+        # Return None or an empty dict if the request fails
+        return None
 
 def movie_list_html(request):
     query = request.GET.get("q")
@@ -23,41 +37,67 @@ def movie_list_html(request):
 
     if query:
         # Search by user query
-        url = f"http://www.omdbapi.com/?s={query}&page={page}&apikey={OMDB_API_KEY}"
-        data = requests.get(url).json()
-        movies = data.get("Search", [])
+        params = {'s': query, 'page': page}
+        data = fetch_from_omdb(params)
+        if data:
+            movies = data.get("Search", [])
 
     elif top_rated_btn:
-        # Dynamic top-rated using keyword search
-        for p in range(1, 4):  # fetch first 3 pages
-            url = f"http://www.omdbapi.com/?s=top rated&page={p}&apikey={OMDB_API_KEY}"
-            data = requests.get(url).json()
-            search_results = data.get("Search", [])
-            if search_results:
-                movies.extend(search_results)
+        # Fetch a single page of top-rated movies to reduce API calls
+        params = {'s': 'top rated', 'page': page}
+        data = fetch_from_omdb(params)
+        if data:
+            movies = data.get("Search", [])
 
     elif genre_filter:
-        # Fetch multiple movies per genre
-        for _ in range(MOVIES_PER_GENRE):
-            url = f"http://www.omdbapi.com/?s={genre_filter}&page={random.randint(1, 10)}&apikey={OMDB_API_KEY}"
-            data = requests.get(url).json()
-            search_results = data.get("Search", [])
-            if search_results:
-                movies.append(random.choice(search_results))
+        # Fetch a single page for the selected genre
+        params = {'s': genre_filter, 'page': page}
+        data = fetch_from_omdb(params)
+        if data:
+            movies = data.get("Search", [])
 
     else:
-        # Random recommendations per genre
+        # Optimized: Fetch one random movie from each genre
         for genre in GENRES:
-            for _ in range(MOVIES_PER_GENRE):
-                search_query = random.choice([genre, "Movie", "Film"])
-                url = f"http://www.omdbapi.com/?s={search_query}&page={random.randint(1, 10)}&apikey={OMDB_API_KEY}"
-                data = requests.get(url).json()
-                search_results = data.get("Search", [])
-                if search_results:
-                    movies.append(random.choice(search_results))
+            params = {
+                's': genre,
+                'type': 'movie',
+                'page': random.randint(1, 5) # Search within first 5 pages for variety
+            }
+            data = fetch_from_omdb(params)
+            if data and data.get("Search"):
+                movies.append(random.choice(data["Search"]))
 
+    # Remove duplicates that might arise from random selections
+    unique_movies_dict = {movie['imdbID']: movie for movie in movies}
+    imdb_ids = list(unique_movies_dict.keys())
+
+    # Fetch review statistics for the movies being displayed
+    review_stats = Review.objects.filter(movie__imdb_id__in=imdb_ids).values('movie__imdb_id').annotate(
+        average_rating=Avg('rating'),
+        review_count=Count('id')
+    )
+
+    # Create a dictionary for easy lookup of review stats
+    stats_map = {stat['movie__imdb_id']: stat for stat in review_stats}
+
+    # Check which movies the current user has reviewed
+    user_reviewed_ids = set()
+    if request.user.is_authenticated:
+        user_reviewed_ids = set(Review.objects.filter(
+            user=request.user,
+            movie__imdb_id__in=imdb_ids
+        ).values_list('movie__imdb_id', flat=True))
+
+    # Add review stats to each movie
+    for imdb_id, movie in unique_movies_dict.items():
+        stats = stats_map.get(imdb_id)
+        movie['average_rating'] = round(stats['average_rating'], 1) if stats else 0
+        movie['review_count'] = stats['review_count'] if stats else 0
+        movie['user_has_reviewed'] = imdb_id in user_reviewed_ids
+    
     return render(request, "movies/movie_list.html", {
-        "movies": movies,
+        "movies": list(unique_movies_dict.values()),
         "genres": GENRES,
         "current_genre": genre_filter or "",
         "current_page": page

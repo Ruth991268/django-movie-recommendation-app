@@ -18,7 +18,8 @@ load_dotenv()  # loads .env into environment variables
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -44,11 +45,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
       # third-party
     'rest_framework',
+    'reviews',
+    'users',
     'rest_framework.authtoken',
 
     # local
     'movies',
-    'users'
+    
 ]
 
 MIDDLEWARE = [
@@ -87,6 +90,7 @@ WSGI_APPLICATION = 'movierec.wsgi.application'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -98,10 +102,17 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# settings.py
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'rjmovie_db',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
@@ -146,3 +157,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# URL to redirect to for login
+LOGIN_URL = 'login'
+
+# Default URL to redirect to after a successful login
+LOGIN_REDIRECT_URL = 'movies-list-html'

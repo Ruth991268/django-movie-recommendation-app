@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Your Own Review</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: #fff; padding: 20px; margin: 0; }
+        .container { max-width: 900px; margin: auto; background: #1a1a1a; padding: 20px; border-radius: 8px; }
+        h1, h2 { color: #f39c12; }
+        a { color: #f39c12; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 20px; }
+
+        /* Search Form */
+        .search-form { margin-bottom: 30px; }
+        .search-form input[type=text] { width: 70%; background: #333; color: #fff; border: 1px solid #444; border-radius: 5px; padding: 10px; box-sizing: border-box; }
+        .search-form button { padding: 10px 15px; border: none; border-radius: 5px; background: #f39c12; color: #fff; cursor: pointer; font-size: 16px; }
+
+        /* Search Results */
+        .search-results { margin-top: 20px; }
+        .result-item { display: flex; align-items: center; background: #222; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        .result-item img { width: 50px; height: auto; border-radius: 3px; margin-right: 15px; }
+        .result-info { flex-grow: 1; }
+        .result-info h3 { margin: 0; font-size: 16px; }
+        .result-info p { margin: 2px 0 0; font-size: 14px; color: #ccc; }
+
+        /* Review Form */
+        .review-form { margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; }
+        .review-form input[type=text],
+        .review-form textarea { width: 100%; background: #333; color: #fff; border: 1px solid #444; border-radius: 5px; padding: 10px; box-sizing: border-box; margin-bottom: 15px; }
+        .review-form .rating-group { margin-bottom: 15px; }
+        .review-form select { padding: 8px; border-radius: 5px; background: #333; color: #fff; border: 1px solid #444; }
+        .review-form button { padding: 10px 15px; border: none; border-radius: 5px; background: #f39c12; color: #fff; cursor: pointer; font-size: 16px; }
+        .review-form button:hover { background: #e67e22; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'movies-list-html' %}" class="back-link">&larr; Back to Movie List</a>
+
+        <h1>Create Your Own Review</h1>
+
+        {% if user.is_authenticated %}
+            <!-- Step 1: Search for a movie -->
+            <div class="search-form">
+                <h2>1. Find a movie to review</h2>
+                <form method="get">
+                    <input type="text" name="q" placeholder="Search for a movie title..." value="{{ search_query }}" required>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+
+            <!-- Step 2: Show search results and the review form -->
+            {% if search_query %}
+            <div class="search-results">
+                <h2>2. Select a movie and write your review</h2>
+                {% for movie in search_results %}
+                    <div class="result-item">
+                        <img src="{{ movie.Poster }}" alt="{{ movie.Title }} Poster">
+                        <div class="result-info">
+                            <h3>{{ movie.Title }}</h3>
+                            <p>{{ movie.Year }}</p>
+                        </div>
+                    </div>
+                    <div class="review-form">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="imdb_id" value="{{ movie.imdbID }}">
+                            <input type="hidden" name="title" value="{{ movie.Title }}">
+                            <div class="rating-group">
+                                <label for="rating-{{ movie.imdbID }}">Rating:</label>
+                                <select name="rating" id="rating-{{ movie.imdbID }}" required>
+                                    <option value="">--Select a rating--</option>
+                                    <option value="5">5 - Excellent</option>
+                                    <option value="4">4 - Very Good</option>
+                                    <option value="3">3 - Good</option>
+                                    <option value="2">2 - Fair</option>
+                                    <option value="1">1 - Poor</option>
+                                </select>
+                            </div>
+                            <textarea name="content" placeholder="What did you think of '{{ movie.Title }}'?" required></textarea>
+                            <br><br>
+                            <button type="submit">Submit Review for {{ movie.Title }}</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p>No movies found for "{{ search_query }}". Please try another search.</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% else %}
+            <p>You must be <a href="{% url 'login' %}">logged in</a> to write a review.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
