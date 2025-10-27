@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from .forms import RegisterForm
 
@@ -18,16 +19,18 @@ def register_view(request):
 
 # Login view
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('movies-list-html') # Redirect authenticated users from login page
+
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('movies-list-html')  # redirect to your main movie service page
-        else:
-            messages.error(request, 'Invalid username or password')
-    return render(request, 'users/login.html')
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.get_user())
+            return redirect('movies-list-html')
+        messages.error(request, 'Invalid username or password') # Display error if form is not valid
+    else:
+        form = AuthenticationForm()
+    return render(request, 'users/login.html', {'form': form})
 
 # Logout view
 def logout_view(request):

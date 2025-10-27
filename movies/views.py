@@ -1,10 +1,12 @@
 import os
 import random
 import requests
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from dotenv import load_dotenv
+from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count
-from reviews.models import Review
+from reviews.models import Review, Movie
+from .models import FavoriteMovie, FavoriteMovie
 
 load_dotenv()
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
@@ -31,7 +33,10 @@ def movie_list_html(request):
     query = request.GET.get("q")
     top_rated_btn = request.GET.get("top_rated")
     genre_filter = request.GET.get("genre")
-    page = int(request.GET.get("page", 1))  # pagination for Load More
+    try:
+        page = int(request.GET.get("page", 1))
+    except ValueError:
+        page = 1
 
     movies = []
 
@@ -81,6 +86,14 @@ def movie_list_html(request):
     # Create a dictionary for easy lookup of review stats
     stats_map = {stat['movie__imdb_id']: stat for stat in review_stats}
 
+    # Check which movies are in the user's favorites
+    user_favorited_ids = set()
+    if request.user.is_authenticated:
+        user_favorited_ids = set(FavoriteMovie.objects.filter(
+            user=request.user,
+            movie_id__in=imdb_ids
+        ).values_list('movie_id', flat=True))
+
     # Check which movies the current user has reviewed
     user_reviewed_ids = set()
     if request.user.is_authenticated:
@@ -89,11 +102,12 @@ def movie_list_html(request):
             movie__imdb_id__in=imdb_ids
         ).values_list('movie__imdb_id', flat=True))
 
-    # Add review stats to each movie
+    # Add review stats and favorite status to each movie
     for imdb_id, movie in unique_movies_dict.items():
         stats = stats_map.get(imdb_id)
         movie['average_rating'] = round(stats['average_rating'], 1) if stats else 0
         movie['review_count'] = stats['review_count'] if stats else 0
+        movie['is_favorite'] = imdb_id in user_favorited_ids
         movie['user_has_reviewed'] = imdb_id in user_reviewed_ids
     
     return render(request, "movies/movie_list.html", {
@@ -105,8 +119,67 @@ def movie_list_html(request):
 
 
 def movie_detail_html(request, movie_id):
-    url = f"http://www.omdbapi.com/?i={movie_id}&apikey={OMDB_API_KEY}&plot=full"
-    data = requests.get(url).json()
-    if data.get("Response") == "False":
-        data = {"Title": "Not found", "Plot": "No data available", "imdbID": movie_id}
-    return render(request, "movies/movie_detail.html", {"movie": data})
+    """Fetches and displays detailed information for a single movie."""
+    # Fetch movie details from OMDB
+    movie_data = fetch_from_omdb({'i': movie_id, 'plot': 'full'})
+    if not movie_data or movie_data.get('Response') == 'False':
+        return render(request, '404.html', {'message': f"Movie with ID '{movie_id}' not found."}, status=404)
+
+    # Find or create movie in local DB to associate reviews with
+    movie, created = Movie.objects.get_or_create(
+        imdb_id=movie_id,
+        defaults={'title': movie_data.get('Title', 'N/A')}
+    )
+
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return redirect('login')
+
+        rating = request.POST.get('rating')
+        content = request.POST.get('content')
+        error_message = None
+
+        try:
+            rating_int = int(rating)
+            if not 1 <= rating_int <= 10:
+                raise ValueError("Rating must be between 1 and 10.")
+
+            if content:
+                Review.objects.create(user=request.user, movie=movie, rating=rating_int, content=content)
+                return redirect('movies-detail-html', movie_id=movie_id)
+        except (ValueError, TypeError):
+            error_message = "Invalid rating. Please provide a number between 1 and 10."
+        
+        # Re-render page with error if submission fails
+        reviews = Review.objects.filter(movie=movie).order_by('-created_at')
+        context = {'movie': movie_data, 'reviews': reviews, 'error_message': error_message}
+        return render(request, 'movies/movie_detail.html', context)
+
+    reviews = Review.objects.filter(movie=movie).order_by('-created_at')
+    return render(request, "movies/movie_detail.html", {"movie": movie_data, "reviews": reviews})
+
+
+@login_required
+def toggle_favorite_view(request):
+    """Add or remove a movie from the user's favorites."""
+    if request.method == 'POST':
+        movie_id = request.POST.get('movie_id')
+        movie_title = request.POST.get('movie_title')
+        poster_url = request.POST.get('poster_url')
+
+        favorite, created = FavoriteMovie.objects.get_or_create(
+            user=request.user,
+            movie_id=movie_id,
+            defaults={'movie_title': movie_title, 'poster_url': poster_url}
+        )
+
+        if not created:
+            # If the favorite already existed, delete it
+            favorite.delete()
+
+    return redirect(request.META.get('HTTP_REFERER', 'movies-list-html'))
+
+@login_required
+def favorite_list_view(request):
+    favorites = FavoriteMovie.objects.filter(user=request.user)
+    return render(request, 'movies/favorites.html', {'favorites': favorites})

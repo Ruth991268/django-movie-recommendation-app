@@ -35,46 +35,6 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
 # -------------------------
 
 @login_required
-def movie_detail_view(request, imdb_id):
-    api_key = os.environ.get('OMDB_API_KEY')
-    if not api_key:
-        return render(request, 'error.html', {'message': 'OMDB API key is not configured.'})
-
-    # Fetch movie details from OMDB
-    try:
-        url = f'http://www.omdbapi.com/?i={imdb_id}&apikey={api_key}'
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        movie_data = response.json()
-    except (requests.exceptions.RequestException, requests.exceptions.ConnectionError) as e:
-        return render(request, 'error.html', {'message': f'Could not connect to the movie database: {e}'})
-
-    # Find or create movie in local DB
-    movie, created = Movie.objects.get_or_create(
-        imdb_id=imdb_id,
-        defaults={'title': movie_data.get('Title', 'N/A')}
-    )
-
-    if request.method == 'POST':
-        rating = request.POST.get('rating')
-        content = request.POST.get('content')
-
-        if rating and content:
-            Review.objects.create(
-                user=request.user,
-                movie=movie,
-                rating=rating,
-                content=content
-            )
-            return redirect('movies-detail-html', imdb_id=imdb_id)
-
-    # Get all reviews for this movie
-    reviews = Review.objects.filter(movie=movie).order_by('-created_at')
-    context = {'movie': movie_data, 'reviews': reviews}
-    return render(request, 'movies/movie_detail.html', context)
-
-
-@login_required
 def create_review_view(request):
     search_query = request.GET.get('q', '')
     search_results = []
@@ -90,19 +50,26 @@ def create_review_view(request):
         title = request.POST.get('title')
         rating = request.POST.get('rating')
         content = request.POST.get('content')
+        error_message = None
 
         if imdb_id and title and rating and content:
-            movie, created = Movie.objects.get_or_create(
-                imdb_id=imdb_id,
-                defaults={'title': title}
-            )
-            Review.objects.create(
-                user=request.user,
-                movie=movie,
-                rating=rating,
-                content=content
-            )
-            return redirect('movies-list-html')
+            try:
+                rating_int = int(rating)
+                if not 1 <= rating_int <= 10:
+                    raise ValueError("Rating must be between 1 and 10.")
+                
+                movie, created = Movie.objects.get_or_create(
+                    imdb_id=imdb_id,
+                    defaults={'title': title}
+                )
+                Review.objects.create(
+                    user=request.user, movie=movie, rating=rating_int, content=content
+                )
+                return redirect('movies-list-html')
+            except (ValueError, TypeError):
+                error_message = "Invalid rating. Please provide a number between 1 and 10."
+                context = {'search_query': search_query, 'search_results': search_results, 'error_message': error_message}
+                return render(request, 'movies/create_review.html', context)
 
     context = {'search_query': search_query, 'search_results': search_results}
     return render(request, 'movies/create_review.html', context)

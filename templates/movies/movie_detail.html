@@ -61,7 +61,7 @@
                 <div class="review">
                     <p class="review-author">{{ review.user.username }}</p>
                     <p class="review-meta">
-                        <span class="review-rating">Rating: {{ review.rating }}/5</span> - 
+                        <span class="review-rating">Rating: {{ review.rating }}/10</span> - 
                         <span class="review-date">{{ review.created_at|date:"F j, Y" }}</span>
                     </p>
                     <p>{{ review.content }}</p>
@@ -81,11 +81,16 @@
                         <label for="rating">Rating:</label>
                         <select name="rating" id="rating" required>
                             <option value="">--Select a rating--</option>
-                            <option value="5">5 - Excellent</option>
-                            <option value="4">4 - Very Good</option>
-                            <option value="3">3 - Good</option>
-                            <option value="2">2 - Fair</option>
-                            <option value="1">1 - Poor</option>
+                            <option value="10">10 - Masterpiece</option>
+                            <option value="9">9 - Excellent</option>
+                            <option value="8">8 - Very Good</option>
+                            <option value="7">7 - Good</option>
+                            <option value="6">6 - Fine</option>
+                            <option value="5">5 - Average</option>
+                            <option value="4">4 - Bad</option>
+                            <option value="3">3 - Very Bad</option>
+                            <option value="2">2 - Horrible</option>
+                            <option value="1">1 - Appalling</option>
                         </select>
                     </div>
                     <textarea name="content" placeholder="What did you think of the movie?" required></textarea>

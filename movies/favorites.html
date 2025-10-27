@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}My Favorite Movies{% endblock %}
+
+{% block content %}
+<style>
+    .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+    .movie-card {
+        background: #222;
+        border-radius: 8px;
+        overflow: hidden;
+        text-align: center;
+        color: #fff;
+        text-decoration: none;
+        transition: transform 0.2s;
+    }
+    .movie-card:hover {
+        transform: scale(1.05);
+    }
+    .movie-card img {
+        width: 100%;
+        height: 270px;
+        object-fit: cover;
+    }
+    .movie-card-info {
+        padding: 10px;
+    }
+    .movie-card-info h3 {
+        font-size: 1em;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
+<div class="container mt-4">
+    <h1 class="mb-4">My Favorite Movies</h1>
+    <div class="movie-grid">
+        {% for favorite in favorites %}
+            <a href="{% url 'movies-detail-html' favorite.movie_id %}" class="movie-card">
+                <img src="{{ favorite.poster_url }}" alt="{{ favorite.movie_title }} Poster">
+                <div class="movie-card-info"><h3>{{ favorite.movie_title }}</h3></div>
+            </a>
+        {% empty %}
+            <p>You haven't added any favorite movies yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
